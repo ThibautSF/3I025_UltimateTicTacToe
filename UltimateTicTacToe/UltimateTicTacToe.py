@@ -24,6 +24,7 @@ import sys
 # ---- ---- ---- ---- ---- ----
 
 game = Game()
+colorDic = {'r':(19,0),'j':(19,1),'b':(20,1)}
 
 def init(_boardname=None):
     global player,game
@@ -129,7 +130,7 @@ def main():
 
             #x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
             #test de la fonctions astar:
-            x_inc,y_inc = astar((row,col),fioles.keys()[j],wallStates) 
+            x_inc,y_inc = astar((row,col),list(fioles.keys())[j],wallStates)
 
             next_row = row+x_inc
             next_col = col+y_inc
@@ -158,9 +159,13 @@ def main():
                 (new_row,new_col) = newPosForFiole(couleur,tictactoeStates,wallStates,fioles)
                 fioles[(new_row,new_col)] = couleur
                 print(game.layers['ramassable'].sprites())
-                pygame.quit()
                 
-                 
+                for o in game.layers['ramassable']:
+                    if o.tileid == colorDic[couleur]:
+                        o.set_rowcol(new_row,new_col)
+                        game.layers['ramassable'].add(o)
+                
+                
                 
                 #break
             
