@@ -15,6 +15,7 @@ import glo
 import random 
 import numpy as np
 import sys
+from _ast import While
 
 
 
@@ -117,9 +118,6 @@ def main():
         # on ajoute cette fiole dans le dictionnaire
         #fioles[(x,y)]=couleur(o)
         
-        if j==0:
-            o.set_rowcol(17,4)
-        
         game.layers['ramassable'].add(o)
         game.mainiteration()
         return (x,y)
@@ -142,12 +140,10 @@ def main():
     
     row,col = posPlayers[j]
     
-    print(str((row,col)))
+    #chemin = astar2((row,col),fiole_a_ramasser,wallStates)
     
-    chemin = astar2((row,col),fiole_a_ramasser,wallStates)
+    chemin = astar((row,col),fiole_a_ramasser,wallStates)
     
-    
-
     for i in range(iterations):
         # bon ici on fait juste plusieurs random walker pour exemple...
         
@@ -183,12 +179,13 @@ def main():
             
             # on active le joueur suivant
             # et on place la fiole suivante
-            j = (j+1)%2     
+            j = (j+1)%nbPlayers    
             if j == 0:
                 tour+=1
                  
-            fiole_a_ramasser=put_next_fiole(j,tour)    
-    
+            fiole_a_ramasser=put_next_fiole(j,tour)
+            row,col = posPlayers[j]
+            chemin = astar((row,col),fiole_a_ramasser,wallStates)
                 
                 #break
             
@@ -200,60 +197,67 @@ def manhattan(position,objectif):
     (x1,y1)=position
     (x2,y2)=objectif
     return abs(x1-x2)+abs(y1-y2)
-    
-def astar(position,objectif,wallStates):
-    choix = getChoix(position, wallStates)
-    distmin = 100
-    meilleurChoix = (0,0)
-    for o in choix:
-        print(o)
-        frontiere = manhattan((position[0] + o[0] , position[1] + o[1]), objectif)
-        if frontiere < distmin :
-            if frontiere not in wallStates:
-                distmin = frontiere
-                meilleurChoix = o
-    return meilleurChoix
 
-def astar2(position,objectif,wallStates):
-    chemin = []
-    listevisite = {position:(0,position)}
-    listefrontiere = {}
+def astar(depart,objectif,wallStates):
+    closedSet = set()
+    openSet = {depart}
     
-    positiontest = position
-    while positiontest != objectif:
-        choix = getChoix(positiontest, wallStates)
-        distance = listevisite[positiontest][0]+1
-        for f in choix:
-            #distance=listevisite[positiontest][0]+1+manhattan(positiontest,objectif)
-            if (listefrontiere.get(f)==None or distance < listefrontiere[f][0]) and listevisite.get(f)==None :
-                listefrontiere[f]=(distance,positiontest)
+    cameFrom = {}
+    
+    gScore = {}
+    gScore[depart] = 0
+    
+    fScore = {}
+    fScore[depart]=manhattan(depart, objectif)
+    
+    while openSet!={}:
+        current = lowestNode(openSet,fScore)
+        
+        if current == objectif:
+            return getChemin(cameFrom, current)
+        
+        openSet.remove(current)
+        closedSet.add(current)
+        
+        frontiere = getChoix(current, wallStates)
+        for voisin in frontiere:
+            if voisin in closedSet:
+                continue
             
-            if f == objectif:
-                print("Trouvé")
-        
-        min_f = (-1,-1)
-        print(listefrontiere)
-        print(listevisite)
-        for f in listefrontiere :
-            if min_f == (-1,-1):
-               min_f = f; 
-            else:
-                if listefrontiere[min_f][0] + manhattan(min_f,objectif) > listefrontiere[f][0] + manhattan(f,objectif):
-                     min_f = f
-        
-        
-        listevisite[min_f] = (distance,positiontest)
-        listefrontiere.pop(min_f)
-        positiontest = min_f
+            if voisin not in openSet:
+                openSet.add(voisin)
+            
+            new_gScore = gScore[current] + 1
+            if voisin in gScore:
+                if new_gScore >= gScore[voisin]:
+                    continue
+            
+            cameFrom[voisin] = current
+            gScore[voisin] = new_gScore
+            fScore[voisin] = gScore[voisin]+manhattan(voisin, objectif)
     
-    n = positiontest
-    while n != position:
-        chemin.insert(0, n)
-        n = listevisite[n][1]
-    
+    return [];
+        
+def lowestNode(openSet,fScore):
+    noeudMin = (-1,-1)
+    for noeud in openSet:
+        if noeudMin == (-1,-1):
+            noeudMin = noeud
+        else:
+            if fScore[noeud]<fScore[noeudMin]:
+                noeudMin = noeud
+    return noeudMin
+
+def getChemin(cameFrom, pos):
+    chemin = [pos]
+    print(pos)
+    print(chemin)
+    while pos in list(cameFrom.keys()):
+        pos = cameFrom[pos]
+        chemin.insert(0,pos)
+        #print(chemin)
     return chemin
-        
-    
+
 def getChoix(position,wallStates):
     choix = [(0,1),(0,-1),(1,0),(-1,0)]
     frontiere = []
@@ -263,6 +267,7 @@ def getChoix(position,wallStates):
             frontiere.append((position[0]+one_choix[0],position[1]+one_choix[1]))
     
     return frontiere
+
 
 if __name__ == '__main__':
     main()
