@@ -33,7 +33,7 @@ def init(_boardname=None):
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 5  # frames per second
+    game.fps = 20 # frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     #player = game.player
@@ -76,6 +76,23 @@ def main():
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
     # et la zone de jeu pour le tic-tac-toe
     tictactoeStates = [(x,y) for x in range(3,16) for y in range(3,16)]
+    
+    realTicTacToeStates = []
+    playedTicTacToeStates = []
+    for x in range(4,15):
+        line = []
+        played = []
+        for y in range(4,15):
+            if (x,y) not in wallStates:
+                if not ((x in [5,9,13] and y in [7,11]) or (x in [7,11] and y in [5,9,13])):
+                    line.append((x,y))
+                    played.append(-1)
+        if line != []:
+            realTicTacToeStates.append(line)
+            playedTicTacToeStates.append(played)
+    
+    print(realTicTacToeStates)
+    print(playedTicTacToeStates)
     #print ("Wall states:", wallStates)
     
     # les coordonnees des tiles dans la fiche
@@ -85,7 +102,7 @@ def main():
     # listes des objets fioles jaunes et bleues
     
     fiolesJaunes = [f for f in game.layers['ramassable'] if f.tileid==tile_fiole_jaune]
-    fiolesBleues = [f for f in game.layers['ramassable'] if f.tileid==tile_fiole_bleue]   
+    fiolesBleues = [f for f in game.layers['ramassable'] if f.tileid==tile_fiole_bleue]
     all_fioles = (fiolesJaunes,fiolesBleues) 
     fiole_a_ramasser = (0,0) # servira à repérer la prochaine fiole à prendre
     
@@ -132,64 +149,70 @@ def main():
     
     posPlayers = initStates
 
-    tour = 0    
+    tour = 0
     j = 0 # le joueur 0 commence
-    # on place la premiere fiole jaune      
-
-    fiole_a_ramasser = put_next_fiole(0,tour)
     
-    row,col = posPlayers[j]
+    nextPlay = (-1,-1)
     
-    #chemin = astar2((row,col),fiole_a_ramasser,wallStates)
+    #Un itération = un tour (j1+j2 ont joués)
+    #Remplacer condition par test si jeu gagné
+    while True :
+        fiole_a_ramasser=put_next_fiole(j,tour)
+        row,col = posPlayers[j]
+        chemin = astar((row,col),fiole_a_ramasser,wallStates)
+        
+        #Bouger
+        while True:
+            next_row,next_col = chemin.pop(0)
+            
+            # and ((next_row,next_col) not in posPlayers)
+            if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=19 and next_col>=0 and next_col<=19:
+                players[j].set_rowcol(next_row,next_col)
+                #print ("pos :", j, next_row,next_col)
+                game.mainiteration()
     
-    chemin = astar((row,col),fiole_a_ramasser,wallStates)
-    
-    for i in range(iterations):
-        # bon ici on fait juste plusieurs random walker pour exemple...
-        
-        
-        
-        #x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
-        #test de la fonctions astar:
-        #x_inc,y_inc = astar((row,col),fiole_a_ramasser,wallStates)
-        
-        next_row,next_col = chemin.pop(0)
-        
-        # and ((next_row,next_col) not in posPlayers)
-        if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=19 and next_col>=0 and next_col<=19:
-            players[j].set_rowcol(next_row,next_col)
-            print ("pos :", j, next_row,next_col)
-            game.mainiteration()
-
-            col=next_col
-            row=next_row
-            posPlayers[j]=(row,col)
-        
-        # si on trouve la fiole par un grand hasard...
-        if (row,col)==fiole_a_ramasser:
-            o = players[j].ramasse(game.layers) # on la ramasse
-            game.mainiteration()
-            print ("Objet de couleur ", couleur(o), " trouvé par le joueur ", j)
+                col=next_col
+                row=next_row
+                posPlayers[j]=(row,col)
             
-            # ici il faudrait aller la mettre a la position choisie
-            # pour jouer a ultimate tic-tac-toe
-            # et verifier que la position est legale etc.            
+            if (row,col)==fiole_a_ramasser:
+                o = players[j].ramasse(game.layers) # on la ramasse
+                game.mainiteration()
+                print ("Objet de couleur ", couleur(o), " trouvé par le joueur ", j)
+                break
+        
+        #Cherche position où jouer
+        n,m = jouer(j,realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
+        nextPlay = (n%3,m%3)
+        posjeu = realTicTacToeStates[n][m]
+        chemin = astar((row,col),posjeu,wallStates)
+        
+        #Bouger
+        while True:
+            next_row,next_col = chemin.pop(0)
             
-            
-            
-            # on active le joueur suivant
-            # et on place la fiole suivante
-            j = (j+1)%nbPlayers    
-            if j == 0:
-                tour+=1
-                 
-            fiole_a_ramasser=put_next_fiole(j,tour)
-            row,col = posPlayers[j]
-            chemin = astar((row,col),fiole_a_ramasser,wallStates)
+            # and ((next_row,next_col) not in posPlayers)
+            if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=19 and next_col>=0 and next_col<=19:
+                players[j].set_rowcol(next_row,next_col)
+                #print ("pos :", j, next_row,next_col)
+                game.mainiteration()
                 
-                #break
+                col=next_col
+                row=next_row
+                posPlayers[j]=(row,col)
             
-    
+            
+            if (row,col)==posjeu:
+                #Poser fiole
+                players[j].depose(game.layers)
+                playedTicTacToeStates[n][m] = j
+                game.mainiteration()
+                break
+        
+        j = (j+1)%nbPlayers
+        if j == 0:
+            tour+=1
+        
     pygame.quit()
 
 #Nouvelles Fonctions
@@ -267,6 +290,22 @@ def getChoix(position,wallStates):
             frontiere.append((position[0]+one_choix[0],position[1]+one_choix[1]))
     
     return frontiere
+
+def jouer(j,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
+    x,y = (-1,-1)
+    
+    while True:
+        if playIn == (-1,-1):
+            x = random.randint(0,len(tictactoeStates)-1)
+            y = random.randint(0,len(tictactoeStates[0])-1)
+        else:
+            x = 3*playIn[0]+random.randint(0,2)
+            y = 3*playIn[1]+random.randint(0,2)
+        
+        if playedTicTacToeStates[x][y]==-1:
+            break
+    
+    return (x,y)
 
 
 if __name__ == '__main__':
