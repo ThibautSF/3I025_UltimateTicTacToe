@@ -41,7 +41,7 @@ def init(_boardname=None):
 def main():
 
     #for arg in sys.argv:
-    iterations = 500 # default
+    iterations = 750 # default
     if len(sys.argv) == 2:
         iterations = int(sys.argv[1])
     print ("Iterations: ")
@@ -94,6 +94,16 @@ def main():
     print(realTicTacToeStates)
     print(playedTicTacToeStates)
     #print ("Wall states:", wallStates)
+    
+    #Creation de la mtrice de test de victoire
+    
+    matriceVictoire = []
+    for i in range (0,3):
+        ligne = []
+        for j in range (0,3):
+            ligne.append(-1)
+        matriceVictoire.append(ligne)
+    print(matriceVictoire)
     
     # les coordonnees des tiles dans la fiche
     tile_fiole_jaune = (19,1)
@@ -153,10 +163,13 @@ def main():
     j = 0 # le joueur 0 commence
     
     nextPlay = (-1,-1)
+    n,m=1,1
+    #variable indiquant la victoire
+    gagnant = -1    
     
     #Un itération = un tour (j1+j2 ont joués)
     #Remplacer condition par test si jeu gagné
-    while True :
+    while gagnant == -1 :
         fiole_a_ramasser=put_next_fiole(j,tour)
         row,col = posPlayers[j]
         chemin = astar((row,col),fiole_a_ramasser,wallStates)
@@ -182,7 +195,10 @@ def main():
                 break
         
         #Cherche position où jouer
-        n,m = jouer(j,realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
+        if j == 0:
+            n,m = stratGagnante(n,m,tour,tictactoeStates,playedTicTacToeStates, nextPlay)
+        else:
+            n,m = stratAleatoire(realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
         nextPlay = (n%3,m%3)
         posjeu = realTicTacToeStates[n][m]
         chemin = astar((row,col),posjeu,wallStates)
@@ -206,13 +222,26 @@ def main():
                 #Poser fiole
                 players[j].depose(game.layers)
                 playedTicTacToeStates[n][m] = j
+                
+                #Modifie la matriceVictoire et changeant la valeur si un joueur à gagner dans un carre
+                n2 = int(n/3)
+                m2 = int(m/3)
+                if matriceVictoire[n2][m2] == -1:
+                    matriceVictoire[n2][m2]=isVictoire((n,m),playedTicTacToeStates)
+                    gagnant = isVictoire((0,0),matriceVictoire)
+                #print(playedTicTacToeStates)
+                #print(matriceVictoire)
+                #Fin des tests de victoire
+                
                 game.mainiteration()
                 break
         
         j = (j+1)%nbPlayers
         if j == 0:
             tour+=1
-        
+    print('Le joueur '+ str(gagnant) + ' a gagne!')   
+    while True:
+        None
     pygame.quit()
 
 #Nouvelles Fonctions
@@ -250,7 +279,7 @@ def astar(depart,objectif,wallStates):
             if voisin not in openSet:
                 openSet.add(voisin)
             
-            new_gScore = gScore[current] + 1
+            new_gScore = gScore[current] + 10
             if voisin in gScore:
                 if new_gScore >= gScore[voisin]:
                     continue
@@ -273,8 +302,8 @@ def lowestNode(openSet,fScore):
 
 def getChemin(cameFrom, pos):
     chemin = [pos]
-    print(pos)
-    print(chemin)
+    #print(pos)
+    #print(chemin)
     while pos in list(cameFrom.keys()):
         pos = cameFrom[pos]
         chemin.insert(0,pos)
@@ -307,6 +336,113 @@ def jouer(j,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
     
     return (x,y)
 
+#Startegie de jeu
+def stratAleatoire(tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
+    x,y = (-1,-1)
+    carreDeJeu = playIn
+    #Boucle pour eviter d'etre bloquer faute à un manque de place    
+    while True:
+        if not -1 in [(playedTicTacToeStates[i][j]) for i,j in [(i,j) for i in range(3*carreDeJeu[0],3*carreDeJeu[0]+3) for j in range(3*carreDeJeu[1],3*carreDeJeu[1]+3)]]:
+            carreDeJeu=(random.randint(0,2),random.randint(0,2))
+        else:
+            break
+
+    while True:
+        if carreDeJeu == (-1,-1):
+            x = random.randint(0,len(tictactoeStates)-1)
+            y = random.randint(0,len(tictactoeStates[0])-1)
+        else:
+            x = 3*carreDeJeu[0]+random.randint(0,2)
+            y = 3*carreDeJeu[1]+random.randint(0,2)
+        
+        if playedTicTacToeStates[x][y]==-1:
+            break
+    
+    return (x,y)
+
+#strategie sense gagner a chaque fois mais pose des fioles sur des endroits ou il y en a deja...
+def stratGagnante(nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
+    #liste=[(1,1),(1,0),(1,2),(2,1),(2,0),(2,2),(0,1),(0,0),(0,2)]
+    #Il vaudrait mieux enregistrer le dernier coup jouer... que d'utliser cette liste
+    x,y = (-1,-1)
+    while True:
+        
+        if tour%8 == 0:
+            if playIn != (-1,-1):
+                coup = playIn
+            else:#Debut de la partie
+                playIn = (1,1)
+                coup = [1,1]
+        else:
+            coup = [int(nprec/3),int(mprec/3)]
+            print(coup)
+        x = 3*playIn[0] + coup[0]
+        y = 3*playIn[1] + coup[1]
+        
+        if playedTicTacToeStates[x][y] == -1:
+            break
+        else:
+            #Ici il faut que si on doit aller dans la case du millieu,
+            # il faut envoyer vers l'opposé à la meme position
+            # si ce n'est pas possible, le mettre a la position oppose dans le carre de cette position
+            x,y = stratAleatoire(tictactoeStates,playedTicTacToeStates, playIn)
+    return (x,y)
+             
+#fonction testant la victoire:
+
+def isVictoire(pos,matrice):#+,realTicTacToeStates?
+
+    #l'element que l'on renvoi a la fin: -1: pas de victoire, 0; joueur 0 gagnant et 1: joueur 1 gagnant
+    premier = -1
+    n,m = pos
+    n = n -n%3
+    m = m- m%3
+    #Boucle testant les lignes
+    for i in range(0,3):
+        premier = matrice[n + i][m]
+        if premier != -1:
+            for j in range(0,3):
+                if matrice[n+i][m+j] != premier:
+                    premier = -1
+                    break
+            if  premier != -1:
+                print('on trouve une ligne pour le joueur'+str(premier)+'!'+' En position'+str(n/3)+str(m/3))
+                return premier
+                    
+    #Boucle testant les colonnes
+    for i in range(0,3):
+        premier = matrice[n][m + i]
+        if matrice[n][m + i] != -1:
+            for j in range(0,3):
+                if matrice[n + j][m + i] != premier:
+                    premier = -1
+                    break
+            if  premier != -1:
+                print('on a trouve une colonne pour le joueur'+str(premier)+'!'+' En position'+str(n/3)+str(m/3))
+                return premier
+        
+    #Boucle testant la diagonale gauche-droite
+    premier = matrice[n][m]
+    if matrice[n][m] != -1:       
+        for i in range(0,3):
+            if matrice[n+i][m+i] != premier:
+                premier = -1                    
+                break
+        if premier != -1:
+            print('on a trouver une diagonale gauche-droite pour le joueur'+str(premier)+'!'+' En position'+str(n/3)+str(m/3))
+            return premier
+    #Boucle testant la diagonale droite gauche
+    premier = matrice[n+2][m+2] 
+    if matrice[n+2][m+2] != -1:       
+        for i in range(0,3):
+            if matrice[n+i][m+2-i] != premier:
+                premier = -1                    
+                break
+        if premier != -1:
+            print('on a trouve une diagonale droite gauche pour le joueur'+str(premier)+'!'+' En position'+str(n/3)+str(m/3))
+            return premier
+    #si on arrive ici c'est que l'on a pas trouver de victoire
+    return -1
 
 if __name__ == '__main__':
     main()
