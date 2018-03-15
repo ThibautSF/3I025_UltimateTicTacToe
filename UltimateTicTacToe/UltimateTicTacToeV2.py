@@ -27,6 +27,7 @@ from builtins import str
 
 game = Game()
 playOn = []
+matriceVictoire = []
 
 def init(_boardname=None):
     global player,game
@@ -41,7 +42,7 @@ def init(_boardname=None):
     #player = game.player
     
 def main():
-    global playOn;
+    global playOn,matriceVictoire;
     #for arg in sys.argv:
     iterations = 750 # default
     if len(sys.argv) == 2:
@@ -99,7 +100,6 @@ def main():
     
     #Creation de la mtrice de test de victoire
     
-    matriceVictoire = []
     for i in range (0,3):
         ligne = []
         for j in range (0,3):
@@ -198,11 +198,12 @@ def main():
                 break
         
         #Cherche position où jouer
+        # Strat possibles : RANDOM / RANDOM2 / GAGNANTE
         if j == 0:
             n,m = jouer(j, tictactoeStates, realTicTacToeStates, playedTicTacToeStates, nextPlay, (n,m), tour, "GAGNANTE")
             #n,m = stratGagnante(n,m,tour,tictactoeStates,playedTicTacToeStates, nextPlay)
         else:
-            n,m = jouer(j, tictactoeStates, realTicTacToeStates, playedTicTacToeStates, nextPlay, (n,m), tour, "RANDOM")
+            n,m = jouer(j, tictactoeStates, realTicTacToeStates, playedTicTacToeStates, nextPlay, (n,m), tour, "RANDOM2")
             #n,m = stratAleatoire(realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
         
         nextPlay = (n%3,m%3)
@@ -233,10 +234,10 @@ def main():
                 n2 = int(n/3)
                 m2 = int(m/3)
                 if matriceVictoire[n2][m2] == -1:
-                    matriceVictoire[n2][m2]=isVictoire((n,m),playedTicTacToeStates)
+                    matriceVictoire[n2][m2]=isVictoire((n2,m2),playedTicTacToeStates)
                     gagnant = isVictoire((0,0),matriceVictoire)
                     
-                    if matriceVictoire[n2][m2] != -1 and False:
+                    if matriceVictoire[n2][m2] != -1:
                         print("\n".join([" ".join([str(matriceVictoire[b][a]) for a in range(3)]) for b in range(3)]))
                 #print(playedTicTacToeStates)
                 #print(matriceVictoire)
@@ -326,34 +327,43 @@ def getChoix(position,wallStates):
     
     return frontiere
 
+def getCarreDeJeu(playIn,isNaif,playedTicTacToeStates):
+    if playIn == (-1,-1):
+        carreDeJeu=(random.randint(0,2),random.randint(0,2))
+    else:
+        carreDeJeu = playIn
+        
+        if matriceVictoire[playIn[0]][playIn[1]]!=-1:
+            if not isNaif:
+                carreDeJeu=(random.randint(0,2),random.randint(0,2))
+    
+    if isNonPlein((carreDeJeu[0], carreDeJeu[1]),playedTicTacToeStates):
+        return getCarreDeJeu(playIn, isNaif, playedTicTacToeStates)
+    else:
+        return carreDeJeu
+    
+
 def jouer(numJ,tictactoeStates, realTicTacToeStates, playedTicTacToeStates, playIn, previousPlay, tour, playerStrat):
     
     if playerStrat == "RANDOM" :
         #Pourquoi pas realTicTacToeStates ?
         return stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
-    if playerStrat == "GAGNANTE":
+    if playerStrat == "RANDOM2":
+        return stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn, False)
+    if playerStrat == "GAGNANTE" :
         return stratGagnante(numJ,previousPlay[0],previousPlay[1],tour,realTicTacToeStates,playedTicTacToeStates, playIn)
     
     
 
 #Startegie de jeu
-def stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
+def stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn, isNaif=True):
     x,y = (-1,-1)
-    carreDeJeu = playIn
-    #Boucle pour eviter d'etre bloquer faute à un manque de place
+    
+    carreDeJeu=getCarreDeJeu(playIn,isNaif,playedTicTacToeStates)
+    
     while True:
-        if not -1 in [(playedTicTacToeStates[i][j]) for i,j in [(i,j) for i in range(3*carreDeJeu[0],3*carreDeJeu[0]+3) for j in range(3*carreDeJeu[1],3*carreDeJeu[1]+3)]]:
-            carreDeJeu=(random.randint(0,2),random.randint(0,2))
-        else:
-            break
-
-    while True:
-        if carreDeJeu == (-1,-1):
-            x = random.randint(0,len(tictactoeStates)-1)
-            y = random.randint(0,len(tictactoeStates[0])-1)
-        else:
-            x = 3*carreDeJeu[0]+random.randint(0,2)
-            y = 3*carreDeJeu[1]+random.randint(0,2)
+        x = 3*carreDeJeu[0]+random.randint(0,2)
+        y = 3*carreDeJeu[1]+random.randint(0,2)
         
         if playedTicTacToeStates[x][y]==-1:
             break
@@ -362,7 +372,6 @@ def stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1))
 
 #strategie sense gagner a chaque fois mais pose des fioles sur des endroits ou il y en a deja...
 def stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
-    global playOn
     #liste=[(1,1),(1,0),(1,2),(2,1),(2,0),(2,2),(0,1),(0,0),(0,2)]
     #Il vaudrait mieux enregistrer le dernier coup jouer... que d'utliser cette liste
     print("Tour "+str(tour))
@@ -387,42 +396,45 @@ def stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, p
     
     if playedTicTacToeStates[x][y] != -1:
         #Ici il faut que si on doit aller dans la case du millieu,
-        if playIn == (1,1):
-            newPlayIn = (2*1-int(nprec/3),2*1-int(mprec/3))
-            print("Joue aire opposé")
-            print(playIn)
-            print(newPlayIn)
-            x,y = stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates,newPlayIn)
+        if playIn==(1,1) and tour!=0:
+            if not isNonPlein(playIn, playedTicTacToeStates):
+                x,y = stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
+            else:
+                newPlayIn = (2*1-int(nprec/3),2*1-int(mprec/3))
+                x,y = stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates,newPlayIn)
         
         else:
             # il faut envoyer vers l'opposé à la meme position
             # si ce n'est pas possible, le mettre a la position oppose dans le carre de cette position
             #x,y = stratAleatoire(tictactoeStates,playedTicTacToeStates, playIn)
-            print("Joue case opposée")
-            print(playIn)
-            print(x,y)
-            print((3*playIn[0] + 1),(3*playIn[1] + 1))
-            
-            #print((3+3*playIn[0]),(3+3*playIn[1]))
-            #print((3+3*playIn[0]) - (x + (3*playIn[0] + 1)),(3+3*playIn[1]) - (y + (3*playIn[1] + 1)))
-            #x = (3+3*playIn[0]) - (x + (3*playIn[0] + 1))
-            #y = (3+3*playIn[1]) - (y + (3*playIn[1] + 1))
             
             x = 2*(3*playIn[0] + 1) - x
             y = 2*(3*playIn[1] + 1) - y
             
-            print(x,y)
+            if playedTicTacToeStates[x][y] != -1:
+                x,y = stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
     
     return (x,y)
              
 #fonction testant la victoire:
 
+def isNonPlein(pos,matrice):
+    n = pos[0]*3
+    m = pos[1]*3
+    
+    for i in range(0,3):
+        for j in range(0,3):
+            if matrice[n+i][m+j] == -1:
+                return False
+            
+    return True
+
 def isVictoire(pos,matrice):#+,realTicTacToeStates?
     #l'element que l'on renvoi a la fin: -1: pas de victoire, 0; joueur 0 gagnant et 1: joueur 1 gagnant
     premier = -1
-    n,m = pos
-    n = n -n%3
-    m = m- m%3
+    n = pos[0]*3
+    m = pos[1]*3
+    
     #Boucle testant les lignes
     for i in range(0,3):
         premier = matrice[n + i][m]
@@ -459,11 +471,11 @@ def isVictoire(pos,matrice):#+,realTicTacToeStates?
             return premier
     
     #Boucle testant la diagonale droite gauche
-    premier = matrice[n+2][m+2] 
-    if matrice[n+2][m+2] != -1:       
+    premier = matrice[n][m+2] 
+    if matrice[n][m+2] != -1:
         for i in range(0,3):
             if matrice[n+i][m+2-i] != premier:
-                premier = -1                    
+                premier = -1
                 break
         if premier != -1:
             print('on a trouve une diagonale droite gauche pour le joueur'+str(premier)+'!'+' En position'+str(n/3)+str(m/3))
