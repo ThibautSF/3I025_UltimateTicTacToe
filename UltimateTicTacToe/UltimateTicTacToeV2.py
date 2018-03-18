@@ -28,6 +28,7 @@ from builtins import str
 game = Game()
 playOn = []
 matriceVictoire = []
+nbPlayers =0
 
 def init(_boardname=None):
     global player,game
@@ -42,7 +43,7 @@ def init(_boardname=None):
     #player = game.player
     
 def main():
-    global playOn,matriceVictoire;
+    global playOn,matriceVictoire,nbPlayers;
     #for arg in sys.argv:
     iterations = 750 # default
     if len(sys.argv) == 2:
@@ -198,12 +199,12 @@ def main():
                 break
         
         #Cherche position où jouer
-        # Strat possibles : RANDOM / RANDOM2 / GAGNANTE
+        # Strat possibles : RANDOM / RANDOM2 / GAGNANTE / TERRAIN
         if j == 0:
-            n,m = jouer(j, tictactoeStates, realTicTacToeStates, playedTicTacToeStates, nextPlay, (n,m), tour, "GAGNANTE")
+            n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "GAGNANTE")
             #n,m = stratGagnante(n,m,tour,tictactoeStates,playedTicTacToeStates, nextPlay)
         else:
-            n,m = jouer(j, tictactoeStates, realTicTacToeStates, playedTicTacToeStates, nextPlay, (n,m), tour, "RANDOM2")
+            n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "TERRAIN")
             #n,m = stratAleatoire(realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
         
         nextPlay = (n%3,m%3)
@@ -337,26 +338,24 @@ def getCarreDeJeu(playIn,isNaif,playedTicTacToeStates):
             if not isNaif:
                 carreDeJeu=(random.randint(0,2),random.randint(0,2))
     
-    if isNonPlein((carreDeJeu[0], carreDeJeu[1]),playedTicTacToeStates):
+    if isPlein((carreDeJeu[0], carreDeJeu[1]),playedTicTacToeStates):
         return getCarreDeJeu(playIn, isNaif, playedTicTacToeStates)
     else:
         return carreDeJeu
     
 
-def jouer(numJ,tictactoeStates, realTicTacToeStates, playedTicTacToeStates, playIn, previousPlay, tour, playerStrat):
-    
+def jouer(numJ, playedTicTacToeStates, playIn, previousPlay, tour, playerStrat):
     if playerStrat == "RANDOM" :
-        #Pourquoi pas realTicTacToeStates ?
-        return stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
+        return stratAleatoire(numJ,playedTicTacToeStates, playIn)
     if playerStrat == "RANDOM2":
-        return stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn, False)
+        return stratAleatoire(numJ,playedTicTacToeStates, playIn, False)
     if playerStrat == "GAGNANTE" :
-        return stratGagnante(numJ,previousPlay[0],previousPlay[1],tour,realTicTacToeStates,playedTicTacToeStates, playIn)
-    
-    
+        return stratGagnante(numJ,previousPlay[0],previousPlay[1],tour,playedTicTacToeStates, playIn)
+    if playerStrat == "TERRAIN" :
+        return stratGainTerrain(numJ, playedTicTacToeStates, playIn)
 
 #Startegie de jeu
-def stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn, isNaif=True):
+def stratAleatoire(numJ,playedTicTacToeStates, playIn, isNaif=True):
     x,y = (-1,-1)
     
     carreDeJeu=getCarreDeJeu(playIn,isNaif,playedTicTacToeStates)
@@ -371,7 +370,7 @@ def stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn, isNaif=Tr
     return (x,y)
 
 #strategie sense gagner a chaque fois mais pose des fioles sur des endroits ou il y en a deja...
-def stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, playIn = (-1,-1)):
+def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1)):
     #liste=[(1,1),(1,0),(1,2),(2,1),(2,0),(2,2),(0,1),(0,0),(0,2)]
     #Il vaudrait mieux enregistrer le dernier coup jouer... que d'utliser cette liste
     print("Tour "+str(tour))
@@ -397,11 +396,11 @@ def stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, p
     if playedTicTacToeStates[x][y] != -1:
         #Ici il faut que si on doit aller dans la case du millieu,
         if playIn==(1,1) and tour!=0:
-            if not isNonPlein(playIn, playedTicTacToeStates):
-                x,y = stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
+            if not isPlein(playIn, playedTicTacToeStates):
+                x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
             else:
                 newPlayIn = (2*1-int(nprec/3),2*1-int(mprec/3))
-                x,y = stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates,newPlayIn)
+                x,y = stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates,newPlayIn)
         
         else:
             # il faut envoyer vers l'opposé à la meme position
@@ -412,13 +411,109 @@ def stratGagnante(numJ,nprec,mprec,tour,tictactoeStates,playedTicTacToeStates, p
             y = 2*(3*playIn[1] + 1) - y
             
             if playedTicTacToeStates[x][y] != -1:
-                x,y = stratAleatoire(numJ,tictactoeStates,playedTicTacToeStates, playIn)
+                x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
     
     return (x,y)
-             
-#fonction testant la victoire:
 
-def isNonPlein(pos,matrice):
+def stratGainTerrain(numJ,playedTicTacToeStates, playIn):
+    if playIn == (-1,-1):
+        #Premier Tour
+        return (4,4)
+    else:
+        if matriceVictoire[playIn[0]][playIn[1]]==-1 and not isPlein(playIn, playedTicTacToeStates):
+            #On joue dans le terrain
+            if playedTicTacToeStates[playIn[0]*3+1][playIn[1]*3+1] == -1:
+                x = playIn[0]*3+1
+                y = playIn[1]*3+1
+                return (x,y)
+            else:
+                x,y = getPlay(playIn, playedTicTacToeStates, numJ)
+                
+                if (x,y)!=(-1,-1):
+                    return (x,y)
+                
+                return stratAleatoire(numJ, playedTicTacToeStates, playIn, False)
+        else:
+            #On cherche un meilleur terrain à gagner
+            newPlayIn = getPlay((0,0), matriceVictoire, numJ)
+            
+            if newPlayIn != (-1,-1):
+                return stratGainTerrain(numJ,playedTicTacToeStates, newPlayIn)
+            
+            return stratAleatoire(numJ, playedTicTacToeStates, playIn, False)
+
+def getCorner(pos, matrix):
+    goodchoices = []
+    n = pos[0]*3
+    m = pos[1]*3
+    
+    corners = [(n,m),(n+2,m),(n,m+2),(n+2,m+2)]
+    
+    for i in corners:
+        k,l = i
+        x = 2*(n + 1) - k
+        y = 2*(m + 1) - l
+        if matrix[k][l] == -1 and matrix[x][y] == -1:
+            goodchoices.append(i)
+    
+    if len(goodchoices)>0 :
+        return random.choice(goodchoices)
+    
+    return (-1,-1)
+
+def getPlay(pos, matrix, numJ):
+    n = pos[0]*3
+    m = pos[1]*3
+    
+    lines = [
+             [(n,m),(n,m+1),(n,m+2)],[(n+1,m),(n+1,m+1),(n+1,m+2)],[(n+2,m),(n+2,m+1),(n+2,m+2)],
+             [(n,m),(n+1,m),(n+2,m)],[(n,m+1),(n+1,m+1),(n+2,m+1)],[(n,m+2),(n+1,m+2),(n+2,m+2)],
+             [(n,m),(n+1,m+1),(n+2,m+2)],[(n,m+2),(n+1,m+1),(n+2,m)]
+            ]
+    
+    numO = (numJ+1)%nbPlayers
+    
+    #Essaie de gagner
+    for x in lines:
+        if matrix[x[0][0]][x[0][1]] == numJ  and matrix[x[1][0]][x[1][1]] == numJ and matrix[x[2][0]][x[2][1]] == -1:
+            return (x[2][0],x[2][1])
+        if matrix[x[1][0]][x[1][1]] == numJ and matrix[x[2][0]][x[2][1]] == numJ and matrix[x[0][0]][x[0][1]] == -1:
+            return (x[0][0],x[0][1])
+        if matrix[x[0][0]][x[0][1]] == numJ and matrix[x[2][0]][x[2][1]] == numJ and matrix[x[1][0]][x[1][1]] == -1:
+            return (x[1][0],x[1][1])
+    
+    #Empêche l'adversaire de gagner le terrain
+    for x in lines:
+        if matrix[x[0][0]][x[0][1]] == numO  and matrix[x[1][0]][x[1][1]] == numO and matrix[x[2][0]][x[2][1]] == -1:
+            return (x[2][0],x[2][1])
+        if matrix[x[1][0]][x[1][1]] == numO and matrix[x[2][0]][x[2][1]] == numO and matrix[x[0][0]][x[0][1]] == -1:
+            return (x[0][0],x[0][1])
+        if matrix[x[0][0]][x[0][1]] == numO and matrix[x[2][0]][x[2][1]] == numO and matrix[x[1][0]][x[1][1]] == -1:
+            return (x[1][0],x[1][1])
+    
+    #Le centre est au joueur on prends un coin
+    if matrix[n+1][m+1] == numJ:
+        x,y = getCorner(pos, matrix)
+        
+        if (x,y) != (-1,-1):
+            return (x,y)
+    
+    #Pas de victoire, pas de blocage, pas de coin (si centre appartient au joueur)
+    #On essaie les côtés
+    sides = [(n,m+1), (n+1,m), (n+1,m+2), (n+2,m+1)]
+    goodchoices = []
+    for i in sides:
+        k,l = i
+        if matrix[k][l] == -1:
+            goodchoices.append(i)
+    
+    if goodchoices == []:
+        return getCorner(pos, matrix)
+    else:
+        return random.choice(goodchoices)
+
+#Teste si une matrice est pleine
+def isPlein(pos,matrice):
     n = pos[0]*3
     m = pos[1]*3
     
@@ -429,6 +524,7 @@ def isNonPlein(pos,matrice):
             
     return True
 
+#fonction testant la victoire
 def isVictoire(pos,matrice):#+,realTicTacToeStates?
     #l'element que l'on renvoi a la fin: -1: pas de victoire, 0; joueur 0 gagnant et 1: joueur 1 gagnant
     premier = -1
