@@ -376,7 +376,7 @@ def jouer(numJ, playedTicTacToeStates, playIn, previousPlay, tour, playerStrat):
     if playerStrat == "TERRAIN2" :
         return stratGainTerrain(numJ, playedTicTacToeStates, playIn)
 
-#Startegie de jeu
+#Startegie de jeu aléatoire
 def stratAleatoire(numJ,playedTicTacToeStates, playIn, isNaif=True):
     x,y = (-1,-1)
     
@@ -391,7 +391,7 @@ def stratAleatoire(numJ,playedTicTacToeStates, playIn, isNaif=True):
     
     return (x,y)
 
-#strategie sense gagner a chaque fois mais pose des fioles sur des endroits ou il y en a deja...
+#Stratégie de jeu "gagnante" (si le joueur opposé suit les règles de base)
 def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1)):
     print("Tour "+str(tour))
     
