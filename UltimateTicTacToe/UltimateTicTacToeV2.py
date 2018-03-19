@@ -203,10 +203,8 @@ def main():
         # Strat possibles : RANDOM / RANDOM2 / GAGNANTE / TERRAIN
         if j == 0:
             n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "GAGNANTE")
-            #n,m = stratGagnante(n,m,tour,tictactoeStates,playedTicTacToeStates, nextPlay)
         else:
             n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "TERRAIN")
-            #n,m = stratAleatoire(realTicTacToeStates,playedTicTacToeStates,nextPlay)#+ wallStates?
         
         nextPlay = (n%3,m%3)
         posjeu = realTicTacToeStates[n][m]
@@ -324,7 +322,6 @@ def getChoix(position,wallStates):
     frontiere = []
     for one_choix in choix :
         if (position[0]+one_choix[0],position[1]+one_choix[1]) not in wallStates :
-            #choix.pop(choix.index(one_choix))
             frontiere.append((position[0]+one_choix[0],position[1]+one_choix[1]))
     
     return frontiere
@@ -372,8 +369,6 @@ def stratAleatoire(numJ,playedTicTacToeStates, playIn, isNaif=True):
 
 #strategie sense gagner a chaque fois mais pose des fioles sur des endroits ou il y en a deja...
 def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1)):
-    #liste=[(1,1),(1,0),(1,2),(2,1),(2,0),(2,2),(0,1),(0,0),(0,2)]
-    #Il vaudrait mieux enregistrer le dernier coup jouer... que d'utliser cette liste
     print("Tour "+str(tour))
     
     if tour == 0 or tour == 8:
