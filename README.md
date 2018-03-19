@@ -21,9 +21,5 @@ Le projet se base sur l'utilisation du code fournit dans le dépôt : https://gi
 
 
 # Legal
-
-## Avant le 1er Juin 2018 00:00:00
 Le projet étant commun, interdiction d'utilisation et de modification de tout code dont nous sommes auteur sans autorisation de notre part.
 
-## A partir du 1er Juin 2018
-Vous êtes libres d'utiliser et modifier notre code tant que nous sommes cité en tant qu'auteurs originaux.
