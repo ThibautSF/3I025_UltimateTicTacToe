@@ -15,6 +15,7 @@ import glo
 import random 
 import numpy as np
 import sys
+import time
 from _ast import While
 from builtins import str
 
@@ -251,8 +252,8 @@ def main():
         if j == 0:
             tour+=1
     print('Le joueur '+ str(gagnant) + ' a gagne!')
-    while True:
-        None
+    print('Le programme se fermera dans 10 secondes')
+    time.sleep(10)
     pygame.quit()
 
 #Nouvelles Fonctions
