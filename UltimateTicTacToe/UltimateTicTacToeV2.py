@@ -172,11 +172,12 @@ def main():
     nextPlay = (-1,-1)
     n,m=1,1
     #variable indiquant la victoire
+    gameRun = True
     gagnant = -1
     
     #Un itération = un tour (j1+j2 ont joués)
     #Remplacer condition par test si jeu gagné
-    while gagnant == -1 :
+    while gameRun :
         fiole_a_ramasser=put_next_fiole(j,tour)
         row,col = posPlayers[j]
         chemin = astar((row,col),fiole_a_ramasser,wallStates)
@@ -239,6 +240,24 @@ def main():
                     
                     if matriceVictoire[n2][m2] != -1:
                         print("\n".join([" ".join([str(matriceVictoire[b][a]) for a in range(3)]) for b in range(3)]))
+                                        
+                    if gagnant != -1:
+                        gameRun = False
+                        break
+                    
+                    flg_continue = False
+                    for a in range(0,3):
+                        if not flg_continue:
+                            for b in range(0,3):
+                                if not isPlein((a,b), playedTicTacToeStates):
+                                    flg_continue = True
+                                    break
+                        else:
+                            break
+                    
+                    if not flg_continue:
+                        gameRun = False
+                                
                 #print(playedTicTacToeStates)
                 #print(matriceVictoire)
                 #Fin des tests de victoire
@@ -249,7 +268,10 @@ def main():
         j = (j+1)%nbPlayers
         if j == 0:
             tour+=1
-    print('Le joueur '+ str(gagnant) + ' a gagne!')
+    if gagnant != -1:
+        print('Le joueur '+ str(gagnant) + ' a gagne!')
+    else:
+        print('Egalité')
     print('Le programme se fermera dans 10 secondes')
     time.sleep(10)
     pygame.quit()
@@ -387,7 +409,6 @@ def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1))
         else:
             coup = (int(nprec/3),int(mprec/3))
     
-    print(coup)
     x = 3*playIn[0] + coup[0]
     y = 3*playIn[1] + coup[1]
     
