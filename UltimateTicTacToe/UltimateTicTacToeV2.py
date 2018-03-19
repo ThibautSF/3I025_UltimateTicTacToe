@@ -200,11 +200,11 @@ def main():
                 break
         
         #Cherche position où jouer
-        # Strat possibles : RANDOM / RANDOM2 / GAGNANTE / TERRAIN
+        # Strat possibles : RANDOM / RANDOM2 / GAGNANTE / TERRAIN / TERRAIN2
         if j == 0:
             n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "GAGNANTE")
         else:
-            n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "TERRAIN")
+            n,m = jouer(j, playedTicTacToeStates, nextPlay, (n,m), tour, "RANDOM")
         
         nextPlay = (n%3,m%3)
         posjeu = realTicTacToeStates[n][m]
@@ -350,6 +350,8 @@ def jouer(numJ, playedTicTacToeStates, playIn, previousPlay, tour, playerStrat):
     if playerStrat == "GAGNANTE" :
         return stratGagnante(numJ,previousPlay[0],previousPlay[1],tour,playedTicTacToeStates, playIn)
     if playerStrat == "TERRAIN" :
+        return stratGainTerrain(numJ, playedTicTacToeStates, playIn, True)
+    if playerStrat == "TERRAIN2" :
         return stratGainTerrain(numJ, playedTicTacToeStates, playIn)
 
 #Startegie de jeu
@@ -393,7 +395,8 @@ def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1))
         #Ici il faut que si on doit aller dans la case du millieu,
         if playIn==(1,1) and tour!=0:
             if not isPlein(playIn, playedTicTacToeStates):
-                x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
+                #x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
+                x,y = stratGainTerrain(numJ,playedTicTacToeStates, playIn)
             else:
                 newPlayIn = (2*1-int(nprec/3),2*1-int(mprec/3))
                 x,y = stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates,newPlayIn)
@@ -407,16 +410,28 @@ def stratGagnante(numJ,nprec,mprec,tour,playedTicTacToeStates, playIn = (-1,-1))
             y = 2*(3*playIn[1] + 1) - y
             
             if playedTicTacToeStates[x][y] != -1:
-                x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
+                #x,y = stratAleatoire(numJ,playedTicTacToeStates, playIn)
+                x,y = stratGainTerrain(numJ,playedTicTacToeStates, playIn)
     
     return (x,y)
 
-def stratGainTerrain(numJ,playedTicTacToeStates, playIn):
+def stratGainTerrain(numJ,playedTicTacToeStates, playIn, isNaif=False):
     if playIn == (-1,-1):
         #Premier Tour
         return (4,4)
     else:
-        if matriceVictoire[playIn[0]][playIn[1]]==-1 and not isPlein(playIn, playedTicTacToeStates):
+        if not isPlein(playIn, playedTicTacToeStates):
+            if matriceVictoire[playIn[0]][playIn[1]]!=-1:
+                if not isNaif:
+                    #Le terrain est déjà gagné
+                    #On cherche un meilleur terrain à gagner
+                    newPlayIn = getPlay((0,0), matriceVictoire, numJ)
+                    
+                    if newPlayIn != (-1,-1):
+                        return stratGainTerrain(numJ,playedTicTacToeStates, newPlayIn)
+                    
+                    return stratAleatoire(numJ, playedTicTacToeStates, playIn, isNaif)
+            
             #On joue dans le terrain
             if playedTicTacToeStates[playIn[0]*3+1][playIn[1]*3+1] == -1:
                 x = playIn[0]*3+1
@@ -428,7 +443,7 @@ def stratGainTerrain(numJ,playedTicTacToeStates, playIn):
                 if (x,y)!=(-1,-1):
                     return (x,y)
                 
-                return stratAleatoire(numJ, playedTicTacToeStates, playIn, False)
+                return stratAleatoire(numJ, playedTicTacToeStates, playIn, isNaif)
         else:
             #On cherche un meilleur terrain à gagner
             newPlayIn = getPlay((0,0), matriceVictoire, numJ)
@@ -436,7 +451,7 @@ def stratGainTerrain(numJ,playedTicTacToeStates, playIn):
             if newPlayIn != (-1,-1):
                 return stratGainTerrain(numJ,playedTicTacToeStates, newPlayIn)
             
-            return stratAleatoire(numJ, playedTicTacToeStates, playIn, False)
+            return stratAleatoire(numJ, playedTicTacToeStates, playIn, isNaif)
 
 def getCorner(pos, matrix):
     goodchoices = []
@@ -498,12 +513,15 @@ def getPlay(pos, matrix, numJ):
     #On essaie les côtés
     sides = [(n,m+1), (n+1,m), (n+1,m+2), (n+2,m+1)]
     goodchoices = []
+    nbSides = 0
     for i in sides:
         k,l = i
+        if matrix[k][l] == numJ:
+            nbSides += 1
         if matrix[k][l] == -1:
             goodchoices.append(i)
     
-    if goodchoices == []:
+    if goodchoices == [] or nbSides>1:
         return getCorner(pos, matrix)
     else:
         return random.choice(goodchoices)
