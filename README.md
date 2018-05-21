@@ -3,7 +3,7 @@ Projet du module 3I025 Méthodes et Outils de l'IA et de la RO (L3 UPMC)
 
 ## Cours Suivi
 Cours par [B. Escoffier](http://www-desir.lip6.fr/~escoffier/), [N. Maudet](https://nmaudet.gitlab.io/), [N. Bredèche](http://pages.isir.upmc.fr/~bredeche/pmwiki/pmwiki.php)
-Unité d'enseignement de L3, 3I025 Méthodes et Outils de l'IA et de la RO à l'[Université Pierre et Marie Curie](https://www.sorbonne-universite.fr/) : http://www-connex.lip6.fr/~soulier/content/TechnoWeb/TechnoWeb.html
+Unité d'enseignement de L3, 3I025 Méthodes et Outils de l'IA et de la RO à l'[Université Pierre et Marie Curie](https://www.sorbonne-universite.fr/)
 
 
 ## Projet
